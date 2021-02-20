@@ -94,12 +94,12 @@
               <i class="fa fa-angle-left"></i>
               <div
                 class="backplate"
-                v-for="(imgSrc, plateName) in device.backplateImages"
+                v-for="(backplate, plateName) in device.backplateImages"
                 :class="{ 'active': plateName === device.selectedBackplateStyle }"
                 @click="handleSelectBackplate(plateName)"
                 :key="plateName"
               >
-                <img :src="imgSrc" alt="" />
+                <img :src="backplate.image" alt="" />
               </div>
             </div>
           </div>
@@ -109,14 +109,14 @@
       <div class="checkout">
         <div class="checkout__detail">
           <p class="checkout__detail__info">產品包含:</p>
-          <p class="checkout__detail__info">手機殼外框 (黑) x 1</p>
-          <p class="checkout__detail__info">按鍵 (黑) x 3</p>
-          <p class="checkout__detail__info">背板 (透明) x 1</p>
-          <p class="checkout__detail__info">飾條 (黑) x 1</p>
+          <p class="checkout__detail__info">手機殼外框 ({{ device.selectedCaseColor }}) x 1</p>
+          <p class="checkout__detail__info">按鍵 ({{ device.selectedCaseColor }}) x 3</p>
+          <p class="checkout__detail__info">背板 ({{ device.selectedBackplateStyle }}) x 1</p>
+          <p class="checkout__detail__info">飾條 ({{ device.selectedCaseColor }}) x 1</p>
         </div>
         <div class="checkout__button__block">
           <button class="checkout__btn" @click="addToCart">加入購物車</button>
-          <p class="price">$800 TWD</p>
+          <p class="price">${{ totalPricePreview }} TWD</p>
         </div>
       </div>
     </div>
@@ -128,7 +128,8 @@ import {
   ref,
   reactive,
   toRefs,
-  watch
+  watch,
+  computed
 } from '@vue/composition-api'
 import useRequest from './useRequest'
 import usePresent from './usePresent'
@@ -141,7 +142,12 @@ export default {
     BackPlateSwitch
   },
   setup () {
-    const cartItems = ref([])
+    let cartItems = reactive({
+      bumper: null,
+      button: null,
+      backplate: null,
+      rim: null
+    })
     const products = ref([])
     const devices = ref([])
     const selectedDevice = ref('')
@@ -154,6 +160,12 @@ export default {
         caseColorOptions: [],
         backplateOptions: [],
         backplateImages: [],
+        selectedProduct: {
+          bumper: {},
+          button: {},
+          backplate: {},
+          rim: {}
+        },
         selectedPhoneColor: 'Black',
         selectedCaseColor: 'Black',
         selectedBackplateStyle: 'Clear',
@@ -180,6 +192,10 @@ export default {
         const model = {
           name: splitTitle.join(' '),
           key: splitTitle.join('-').toLowerCase()
+        }
+
+        if (splitTitle.indexOf('(第2代)') >= 0) {
+          model.key = 'iphone-se-2nd-generation'
         }
 
         acc = acc.concat([model])
@@ -221,6 +237,8 @@ export default {
     const addToCart = () => {
       // TODO
       // 把選取的產品加到 cartItems 裡面並 console 出來
+      cartItems = { ...deviceInfo.device.selectedProduct }
+      console.log('cartItems: ', cartItems)
     }
 
     const getDeviceOptions = (parts) => {
@@ -288,10 +306,10 @@ export default {
       getDeviceOptions(productParts)
     }
 
-    const loadImagesFromParts = (deviceInfo, parts = [], { key = 'color', value }) => {
+    const loadImagesAndPricesFromParts = (parts = [], { key = 'color', value }) => {
       const ret = {}
       parts.forEach(part => {
-        const { variants } = deviceInfo.device.origin[part]
+        const { variants, title } = deviceInfo.device.origin[part]
         const match = variants.find(variant => {
           if (key.toLowerCase() === 'color') {
             return (
@@ -301,49 +319,75 @@ export default {
             // pass
           }
         })
-        ret[part] = match ? match.image : 'not found'
+        ret[part] = match
+          ? {
+            id: match.id,
+            title,
+            image: match.image,
+            price: parseInt(match.price, 10),
+            style: value
+          }
+          : {
+            id: null,
+            title: '物品不存在',
+            image: 'Image not found',
+            price: null
+          }
       })
       return ret
     }
 
-    const loadBackplateImages = (deviceInfo) => {
-      const { variants } = deviceInfo.device.origin.backplate
-      const images = variants.reduce((acc, variant) => {
+    const loadBackplateImagesAndPrices = () => {
+      const { variants, title } = deviceInfo.device.origin.backplate
+      const result = variants.reduce((acc, variant) => {
         const plateKey = variant.optionsWithKey.color
-        acc[plateKey] = variant.image
+        const {
+          id,
+          image,
+          price
+        } = variant
+        acc[plateKey] = {
+          id,
+          title,
+          image,
+          price: parseInt(price, 10),
+          style: plateKey
+        }
         return acc
       }, {})
-      deviceInfo.device.backplateImages = images
+      deviceInfo.device.backplateImages = result
     }
 
     const handleSelectColor = (type = 'phone', color) => {
       switch (type) {
         case 'phone': {
           deviceInfo.device.selectedPhoneColor = color
-          const result = loadImagesFromParts(
-            deviceInfo,
+          const result = loadImagesAndPricesFromParts(
             ['phone'],
             { key: 'color', value: color }
           )
-          const { phone: phoneImg } = result
-          deviceInfo.device.displayImages.phone = phoneImg
+          const { phone } = result
+          deviceInfo.device.displayImages.phone = phone.image
+          deviceInfo.device.selectedProduct.phone = phone
           break
         }
         case 'case': {
           deviceInfo.device.selectedCaseColor = color
-          const result = loadImagesFromParts(
-            deviceInfo,
+          const result = loadImagesAndPricesFromParts(
             ['button', 'bumper', 'rim'],
             { key: 'color', value: color }
           )
           const {
-            button: buttonImg,
-            bumper: bumperImg,
-            rim: rimImg
+            button,
+            bumper,
+            rim
           } = result
-          deviceInfo.device.displayImages.button = buttonImg
-          deviceInfo.device.displayImages.bumper = bumperImg
-          deviceInfo.device.displayImages.rim = rimImg
+          deviceInfo.device.displayImages.button = button.image
+          deviceInfo.device.displayImages.bumper = bumper.image
+          deviceInfo.device.displayImages.rim = rim.image
+          deviceInfo.device.selectedProduct.button = button
+          deviceInfo.device.selectedProduct.bumper = bumper
+          deviceInfo.device.selectedProduct.rim = rim
           break
         }
         default:
@@ -353,15 +397,22 @@ export default {
 
     const handleSelectBackplate = plate => {
       deviceInfo.device.selectedBackplateStyle = plate
-      deviceInfo.device.displayImages.backplate = deviceInfo.device.backplateImages[plate]
+      const backplate = deviceInfo.device.backplateImages[plate]
+      deviceInfo.device.displayImages.backplate = backplate.image
+      deviceInfo.device.selectedProduct.backplate = backplate
     }
 
     const getDeviceDefaultImage = () => {
       handleSelectColor('phone', deviceInfo.device.phoneColorOptions[0])
       handleSelectColor('case', deviceInfo.device.caseColorOptions[0])
-      loadBackplateImages(deviceInfo)
+      loadBackplateImagesAndPrices()
       handleSelectBackplate(deviceInfo.device.backplateOptions[0])
     }
+
+    const totalPricePreview = computed(() => {
+      const { backplate, bumper } = deviceInfo.device.selectedProduct
+      return backplate.price + bumper.price
+    })
 
     fetchProductData()
 
@@ -381,6 +432,7 @@ export default {
       ...toRefs(deviceInfo),
       present,
       setPresent,
+      totalPricePreview,
       addToCart
     }
   }
@@ -597,7 +649,7 @@ export default {
     z-index: 200
     transition: all .3s ease
     margin-bottom: 18px
-    margin-right: 10px
+    margin-right: 18px
     display: flex
     align-items: center
     justify-content: center
