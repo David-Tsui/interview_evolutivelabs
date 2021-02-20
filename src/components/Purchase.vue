@@ -39,17 +39,14 @@
           <div class="color-container">
             <p class="color-picker-title">裝置<br>顏色</p>
             <div class="normal color-picker color-picker--vertical">
-              <div id="apple_graphite" class="color-picker--vertical__option active">
-                <div class="dot apple_graphite"></div>
-              </div>
-              <div id="silver" class="color-picker--vertical__option">
-                <div class="dot silver"></div>
-              </div>
-              <div id="gold" class="color-picker--vertical__option">
-                <div class="dot gold"></div>
-              </div>
-              <div id="pacific_blue" class="color-picker--vertical__option">
-                <div class="dot pacific_blue"></div>
+              <div
+                v-for="color in device.phoneColorOptions"
+                class="color-picker__option"
+                :class="{ 'active': color === device.selectedPhoneColor }"
+                @click="handleSelectColor('phone', color)"
+                :key="color"
+              >
+                <div class="dot" :class="color.replace(' ', '')"></div>
               </div>
             </div>
           </div>
@@ -77,6 +74,17 @@
           <div class="option__block">
             <p class="option__title">手機殼顏色</p>
             <div class="icon"></div>
+            <div class="color-picker">
+              <div
+                v-for="color in device.caseColorOptions"
+                class="color-picker__option"
+                :class="{ 'active': color === device.selectedCaseColor }"
+                @click="handleSelectColor('case', color)"
+                :key="color"
+              >
+                <div class="dot" :class="color.replace(' ', '')"></div>
+              </div>
+            </div>
           </div>
           <div class="option__block">
             <p class="option__title">背板樣式</p>
@@ -348,6 +356,7 @@ export default {
       products,
       devices,
       selectedDevice,
+      handleSelectColor,
       ...toRefs(deviceInfo),
       present,
       setPresent,
@@ -447,11 +456,9 @@ export default {
 
   .option__block
     position: relative
-    display: flex
-    justify-content: flex-start
-    align-items: center
     padding: 20px 0
     border-bottom: 1px solid #D8D8D8
+    text-align: left
 
     .option__title
       font-size: 14px
@@ -461,10 +468,9 @@ export default {
     .icon
       position: absolute
       right: 0
-      top: 50%
+      top: 24px
       width: 16px
       height: 16px
-      transform: translateY(-50%)
       cursor: pointer
 
       &::before
@@ -548,20 +554,18 @@ export default {
   transform: translateY(-120%)
   opacity: .2
 
-.color-picker--vertical
+.color-picker
   display: flex
   align-items: center
   justify-content: flex-start
-  flex-direction: column
-  --desc-text-width: 150px
-  --desc-dash-width: 16px
-  --desc-dash-margin: 13px
+  --border-color: #d5d5d5
+  --hover-border: #2d2d2d
 
-  &.normal
-    --border-color: #d5d5d5
-    --hover-border: #d5d5d5
-    --dash-color: #d8d8d8
-    --font-color: #2d2d2d
+  &:not(--vertical)
+    flex-wrap: wrap
+    position: relative
+    margin: 15px 0 0
+    z-index: 3
 
   &__option
     position: relative
@@ -572,28 +576,106 @@ export default {
     z-index: 200
     transition: all .3s ease
     margin-bottom: 18px
+    margin-right: 10px
     display: flex
     align-items: center
     justify-content: center
-    &:hover
+    &:hover, &.active
       border: 1px solid var(--hover-border)
-    .active, .dot
-      width: 23px
-      height: 23px
     .dot
       border: 1px solid var(--border-color)
       border-radius: 50%
       cursor: pointer
+      width: 23px
+      height: 23px
 
-.apple_graphite
-  background-color: #686763
+  &--vertical
+    flex-direction: column
+    --desc-text-width: 150px
+    --desc-dash-width: 16px
+    --desc-dash-margin: 13px
 
-.silver
-  background-color: #c9c8c9
+    &.normal
+      --dash-color: #d8d8d8
+      --font-color: #2d2d2d
+    .color-picker__option
+      margin-right: unset
 
-.gold
-  background-color: #fadcc2
+.AppleGraphite
+  background: #686763
 
-.pacific_blue
-  background-color: #43616c
+.Silver
+  background: #c9c8c9
+
+.Gold
+  background: #fadcc2
+
+.PacificBlue
+  background: #43616c
+
+.Black
+  background: #383636
+
+.JetBlack
+  background: #000000
+
+.White
+  background: #ffffff
+
+.Green
+  background: #60b287
+
+.Red
+  background: #dc5455
+
+.Blue
+  background: #2a7ca0
+
+.SpaceGray
+  background: #575c5c
+
+.AppleRed
+  background: #a6282c
+
+.AppleGreen
+  background: #AEE1CD
+
+.ApplePurple
+  background: #D1CAE1
+
+.Graphite
+  background: #4f4f47
+
+.RoyalBlue
+  background: #255774
+
+.BlushPink
+  background: #f2d1cb
+
+.Yellow
+  background: #ffe568
+
+.CamoGreen
+  background: #505e31
+
+.PlatinumGray
+  background: #afb4b0
+
+.Lavender
+  background: #9390a7
+
+.NavyBlue
+  background: #385672
+
+.MintGreen
+  background: #c3edc7
+
+.Coral
+  background: #ff6e5a
+
+.RoseGold
+  background: #fad6d3
+
+.MidnightGreen
+  background: #6D7971
 </style>
