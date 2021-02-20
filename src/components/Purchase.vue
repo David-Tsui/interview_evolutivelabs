@@ -9,43 +9,46 @@
         <div class="purchase__preview-images-wrapper">
           <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/phone45-12-Pro_AppleGraphite_d04b461d-15c3-4e43-9b43-a828eaa4478c.png?v=1603352312" alt="" class="purchase__preview-image main">
           <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Bumper_87d2c086-7e6a-4f40-93d9-33828a249bbe.png?v=1597911746" alt="" class="purchase__preview-image sub case">
-          <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Rim_2e73b29c-7262-463d-b047-2f91a790068a.png?v=1597911791" alt="" class="purchase__preview-image sub rim purchase__preview-image--backward">
+          <img
+            src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Rim_2e73b29c-7262-463d-b047-2f91a790068a.png?v=1597911791"
+            alt=""
+            :class="{ 'purchase__preview-image--backward': present === 'backplate-mode' }"
+            class="purchase__preview-image sub rim"
+          />
           <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Button_23534b09-c1aa-4ab4-8174-ded2bc09069e.png?v=1597911773" alt="" class="purchase__preview-image sub button">
-          <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/minisite-NPB0118526L_b4665252-c418-480f-9ca3-b84fb860ca2c.png?v=1603868182" alt="" class="purchase__preview-image sub backplate"></div>
-          <div class="purchase__selector-wrapper phone">
-            <div class="color-container">
-              <p class="color-picker-title">裝置<br>顏色</p>
-              <div class="normal color-picker color-picker--vertical">
-                <div id="apple_graphite" class="color-picker--vertical__option active">
-                  <div class="dot apple_graphite"></div>
-                </div>
-                <div id="silver" class="color-picker--vertical__option">
-                  <div class="dot silver"></div>
-                </div>
-                <div id="gold" class="color-picker--vertical__option">
-                  <div class="dot gold"></div>
-                </div>
-                <div id="pacific_blue" class="color-picker--vertical__option">
-                  <div class="dot pacific_blue"></div>
-                </div>
+          <img
+            src="https://cdn.shopify.com/s/files/1/0740/2335/products/minisite-NPB0118526L_b4665252-c418-480f-9ca3-b84fb860ca2c.png?v=1603868182"
+            alt=""
+            :class="{ 'purchase__preview-image--backward': present === 'case-mode' }"
+            class="purchase__preview-image sub backplate"
+          />
+        </div>
+        <div class="purchase__selector-wrapper phone">
+          <div class="color-container">
+            <p class="color-picker-title">裝置<br>顏色</p>
+            <div class="normal color-picker color-picker--vertical">
+              <div id="apple_graphite" class="color-picker--vertical__option active">
+                <div class="dot apple_graphite"></div>
+              </div>
+              <div id="silver" class="color-picker--vertical__option">
+                <div class="dot silver"></div>
+              </div>
+              <div id="gold" class="color-picker--vertical__option">
+                <div class="dot gold"></div>
+              </div>
+              <div id="pacific_blue" class="color-picker--vertical__option">
+                <div class="dot pacific_blue"></div>
               </div>
             </div>
           </div>
-          <div class="purchase__backplate-switch-wrapper">
-            <div class="backplate-switch light">
-              <section class="backplate-switch__common">
-                <div class="backplate-switch__option">
-                  <div class="backplate-switch__checkbox backplate-switch__checkbox--active"></div>
-                  <p class="backplate-switch__mode-name">背板模式</p>
-                </div>
-                <div class="backplate-switch__option">
-                  <div class="backplate-switch__checkbox"></div>
-                  <p class="backplate-switch__mode-name">邊框模式</p>
-                </div>
-              </section>
-            </div>
-          </div>
-        </section>
+        </div>
+        <div class="purchase__backplate-switch-wrapper">
+          <back-plate-switch
+            :present="present"
+            :setPresent="setPresent"
+          />
+        </div>
+      </section>
     </div>
     <!-- 型號/顏色顯示區 -->
     <div class="selection__area">
@@ -92,11 +95,14 @@ import {
   ref
 } from '@vue/composition-api'
 import useRequest from './useRequest'
+import usePresent from './usePresent'
 import RhSelect from './RhSelect'
+import BackPlateSwitch from './BackPlateSwitch'
 
 export default {
   components: {
-    RhSelect
+    RhSelect,
+    BackPlateSwitch
   },
   setup () {
     const cartItems = ref([])
@@ -104,6 +110,7 @@ export default {
     const devices = ref([])
     const selectedDevice = ref('')
     const listLoading = ref(true)
+    const { present, setPresent } = usePresent()
 
     const getAllProductModels = (items) => {
       const tempModels = items.value.reduce((acc, product) => {
@@ -169,6 +176,8 @@ export default {
       products,
       devices,
       selectedDevice,
+      present,
+      setPresent,
       addToCart
     }
   }
@@ -318,23 +327,27 @@ export default {
     position: relative
     height: 80%
   &-image
+    transition: all .3s
     &.main
       position: relative
       height: 100%
-      z-index: 2
+      z-index: 1
     &.sub
       position: absolute
       height: 100%
       top: 0
       left: 0
-    &--backward
-      z-index: 1
-      transition: all .3s
-      transform: translate(12%,-10%)
-    &.case
-      z-index: 3
-    &.backplate
+    &.rim
       z-index: 2
+    &.case
+      z-index: 2
+    &.backplate
+      z-index: 1
+    &--backward
+      z-index: 3
+      transform: translate(12%, -10%)
+      &.rim, &.backplate
+        z-index: 0
 
 .purchase__selector-wrapper
   &.phone
