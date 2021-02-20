@@ -89,6 +89,19 @@
           <div class="option__block">
             <p class="option__title">背板樣式</p>
             <div class="icon"></div>
+            <div class="backplate__style">
+              <i class="fa fa-angle-right"></i>
+              <i class="fa fa-angle-left"></i>
+              <div
+                class="backplate"
+                v-for="(imgSrc, plateName) in device.backplateImages"
+                :class="{ 'active': plateName === device.selectedBackplateStyle }"
+                @click="handleSelectBackplate(plateName)"
+                :key="plateName"
+              >
+                <img :src="imgSrc" alt="" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -140,6 +153,7 @@ export default {
         phoneColorOptions: ['Black', 'White', 'Green', 'Red', 'Blue'],
         caseColorOptions: [],
         backplateOptions: [],
+        backplateImages: [],
         selectedPhoneColor: 'Black',
         selectedCaseColor: 'Black',
         selectedBackplateStyle: 'Clear',
@@ -292,6 +306,16 @@ export default {
       return ret
     }
 
+    const loadBackplateImages = (deviceInfo) => {
+      const { variants } = deviceInfo.device.origin.backplate
+      const images = variants.reduce((acc, variant) => {
+        const plateKey = variant.optionsWithKey.color
+        acc[plateKey] = variant.image
+        return acc
+      }, {})
+      deviceInfo.device.backplateImages = images
+    }
+
     const handleSelectColor = (type = 'phone', color) => {
       switch (type) {
         case 'phone': {
@@ -328,18 +352,14 @@ export default {
     }
 
     const handleSelectBackplate = plate => {
-      const result = loadImagesFromParts(
-        deviceInfo,
-        ['backplate'],
-        { key: 'color', value: plate }
-      )
-      const { backplate: backplateImg } = result
-      deviceInfo.device.displayImages.backplate = backplateImg
+      deviceInfo.device.selectedBackplateStyle = plate
+      deviceInfo.device.displayImages.backplate = deviceInfo.device.backplateImages[plate]
     }
 
     const getDeviceDefaultImage = () => {
       handleSelectColor('phone', deviceInfo.device.phoneColorOptions[0])
       handleSelectColor('case', deviceInfo.device.caseColorOptions[0])
+      loadBackplateImages(deviceInfo)
       handleSelectBackplate(deviceInfo.device.backplateOptions[0])
     }
 
@@ -357,6 +377,7 @@ export default {
       devices,
       selectedDevice,
       handleSelectColor,
+      handleSelectBackplate,
       ...toRefs(deviceInfo),
       present,
       setPresent,
@@ -461,6 +482,7 @@ export default {
     text-align: left
 
     .option__title
+      margin-bottom: 14px
       font-size: 14px
       font-family: 'MarkPro', 'NotoSansCJKtc-Regular'
       color: #2D2D2D
@@ -564,7 +586,6 @@ export default {
   &:not(--vertical)
     flex-wrap: wrap
     position: relative
-    margin: 15px 0 0
     z-index: 3
 
   &__option
@@ -600,6 +621,26 @@ export default {
       --font-color: #2d2d2d
     .color-picker__option
       margin-right: unset
+
+.backplate__style
+  display: flex
+  flex-wrap: wrap
+  .backplate
+    display: flex
+    align-items: center
+    width: 68px
+    height: 68px
+    margin: 0 8px 8px 0
+    border-radius: 10px
+    background-color: #fff
+    box-sizing: border-box
+    cursor: pointer
+    --backplate-active-color: #2d2d2d
+    &.active
+      border: 2px solid var(--backplate-active-color)
+    img
+      width: 100%
+      height: auto
 
 .AppleGraphite
   background: #686763
