@@ -7,20 +7,32 @@
     <div class="display__area">
       <section class="purchase__preview">
         <div class="purchase__preview-images-wrapper">
-          <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/phone45-12-Pro_AppleGraphite_d04b461d-15c3-4e43-9b43-a828eaa4478c.png?v=1603352312" alt="" class="purchase__preview-image main">
-          <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Bumper_87d2c086-7e6a-4f40-93d9-33828a249bbe.png?v=1597911746" alt="" class="purchase__preview-image sub case">
           <img
-            src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Rim_2e73b29c-7262-463d-b047-2f91a790068a.png?v=1597911791"
+            :src="device.displayImages.phone"
             alt=""
+            class="purchase__preview-image phone"
+          />
+          <img
+            :src="device.displayImages.bumper"
+            alt=""
+            class="purchase__preview-image sub case"
+          />
+          <img
+            :src="device.displayImages.rim"
             :class="{ 'purchase__preview-image--backward': present === 'backplate-mode' }"
             class="purchase__preview-image sub rim"
-          />
-          <img src="https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Button_23534b09-c1aa-4ab4-8174-ded2bc09069e.png?v=1597911773" alt="" class="purchase__preview-image sub button">
-          <img
-            src="https://cdn.shopify.com/s/files/1/0740/2335/products/minisite-NPB0118526L_b4665252-c418-480f-9ca3-b84fb860ca2c.png?v=1603868182"
             alt=""
+          />
+          <img
+            :src="device.displayImages.button"
+            class="purchase__preview-image sub button"
+            alt=""
+          />
+          <img
+            :src="device.displayImages.backplate"
             :class="{ 'purchase__preview-image--backward': present === 'case-mode' }"
             class="purchase__preview-image sub backplate"
+            alt=""
           />
         </div>
         <div class="purchase__selector-wrapper phone">
@@ -92,7 +104,10 @@
 
 <script>
 import {
-  ref
+  ref,
+  reactive,
+  toRefs,
+  watch
 } from '@vue/composition-api'
 import useRequest from './useRequest'
 import usePresent from './usePresent'
@@ -111,6 +126,24 @@ export default {
     const selectedDevice = ref('')
     const listLoading = ref(true)
     const { present, setPresent } = usePresent()
+    const deviceInfo = reactive({
+      device: {
+        origin: {},
+        phoneColorOptions: ['Black', 'White', 'Green', 'Red', 'Blue'],
+        caseColorOptions: [],
+        backplateOptions: [],
+        selectedPhoneColor: 'Black',
+        selectedCaseColor: 'Black',
+        selectedBackplateStyle: 'Clear',
+        displayImages: {
+          phone: 'https://cdn.shopify.com/s/files/1/0740/2335/products/phone45-12-Pro_AppleGraphite_d04b461d-15c3-4e43-9b43-a828eaa4478c.png?v=1603352312',
+          bumper: 'https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Bumper_87d2c086-7e6a-4f40-93d9-33828a249bbe.png?v=1597911746',
+          rim: 'https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Rim_2e73b29c-7262-463d-b047-2f91a790068a.png?v=1597911791',
+          button: 'https://cdn.shopify.com/s/files/1/0740/2335/products/Black-Button_23534b09-c1aa-4ab4-8174-ded2bc09069e.png?v=1597911773',
+          backplate: 'https://cdn.shopify.com/s/files/1/0740/2335/products/minisite-NPB0118526L_b4665252-c418-480f-9ca3-b84fb860ca2c.png?v=1603868182'
+        }
+      }
+    })
 
     const getAllProductModels = (items) => {
       const tempModels = items.value.reduce((acc, product) => {
@@ -168,7 +201,146 @@ export default {
       // 把選取的產品加到 cartItems 裡面並 console 出來
     }
 
+    const getDeviceOptions = (parts) => {
+      let availableColors = []
+      Object.entries(parts).forEach(([key, value]) => {
+        const { options } = value
+        const optionsObj = options.reduce((acc, option) => {
+          const { name, values } = option
+          acc[name] = values
+          return acc
+        }, {})
+
+        const colorOptions = optionsObj.color || optionsObj.Color
+        switch (key) {
+          case 'backplate':
+            deviceInfo.device.backplateOptions = colorOptions
+            break
+          case 'phone':
+            deviceInfo.device.phoneColorOptions = colorOptions
+            break
+          case 'bumper':
+          case 'button':
+          case 'rim':
+          case 'clearplate': {
+            // 取各部件都有的顏色(交集)
+            const colorCount = availableColors.length
+            if (!colorCount || (colorCount && colorOptions.length < colorCount)) {
+              availableColors = colorOptions
+            }
+            break
+          }
+          default:
+            break
+        }
+      })
+      deviceInfo.device.caseColorOptions = availableColors
+    }
+
+    const getDeviceDetails = device => {
+      const parts = [
+        'backplate',
+        'bumper',
+        'button',
+        'phone',
+        'rim',
+        'clearplate'
+      ]
+      const handles = [
+        'backplate-45degree',
+        'bumper-45degree',
+        'button-45degree',
+        'phone-45degree',
+        'rim-45degree',
+        'bumper-clearplate'
+      ]
+
+      const handleParts = handles.map(part => `${device}-mod-nx-${part}`)
+      const productParts = handleParts
+        .map(handle => products.value.find(product => product.handle === handle))
+        .reduce((acc, product, index) => {
+          acc[parts[index]] = product
+          return acc
+        }, {})
+      deviceInfo.device.origin = productParts
+      getDeviceOptions(productParts)
+    }
+
+    const loadImagesFromParts = (deviceInfo, parts = [], { key = 'color', value }) => {
+      const ret = {}
+      parts.forEach(part => {
+        const { variants } = deviceInfo.device.origin[part]
+        const match = variants.find(variant => {
+          if (key.toLowerCase() === 'color') {
+            return (
+              variant.optionsWithKey.color === value || variant.optionsWithKey.Color === value
+            )
+          } else {
+            // pass
+          }
+        })
+        ret[part] = match ? match.image : 'not found'
+      })
+      return ret
+    }
+
+    const handleSelectColor = (type = 'phone', color) => {
+      switch (type) {
+        case 'phone': {
+          deviceInfo.device.selectedPhoneColor = color
+          const result = loadImagesFromParts(
+            deviceInfo,
+            ['phone'],
+            { key: 'color', value: color }
+          )
+          const { phone: phoneImg } = result
+          deviceInfo.device.displayImages.phone = phoneImg
+          break
+        }
+        case 'case': {
+          deviceInfo.device.selectedCaseColor = color
+          const result = loadImagesFromParts(
+            deviceInfo,
+            ['button', 'bumper', 'rim'],
+            { key: 'color', value: color }
+          )
+          const {
+            button: buttonImg,
+            bumper: bumperImg,
+            rim: rimImg
+          } = result
+          deviceInfo.device.displayImages.button = buttonImg
+          deviceInfo.device.displayImages.bumper = bumperImg
+          deviceInfo.device.displayImages.rim = rimImg
+          break
+        }
+        default:
+          break
+      }
+    }
+
+    const handleSelectBackplate = plate => {
+      const result = loadImagesFromParts(
+        deviceInfo,
+        ['backplate'],
+        { key: 'color', value: plate }
+      )
+      const { backplate: backplateImg } = result
+      deviceInfo.device.displayImages.backplate = backplateImg
+    }
+
+    const getDeviceDefaultImage = () => {
+      handleSelectColor('phone', deviceInfo.device.phoneColorOptions[0])
+      handleSelectColor('case', deviceInfo.device.caseColorOptions[0])
+      handleSelectBackplate(deviceInfo.device.backplateOptions[0])
+    }
+
     fetchProductData()
+
+    watch([selectedDevice], (value) => {
+      getDeviceDetails(value)
+      getDeviceDefaultImage()
+    })
 
     return {
       cartItems,
@@ -176,6 +348,7 @@ export default {
       products,
       devices,
       selectedDevice,
+      ...toRefs(deviceInfo),
       present,
       setPresent,
       addToCart
@@ -328,7 +501,7 @@ export default {
     height: 80%
   &-image
     transition: all .3s
-    &.main
+    &.phone
       position: relative
       height: 100%
       z-index: 1
