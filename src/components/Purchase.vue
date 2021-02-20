@@ -51,11 +51,11 @@
     <div class="selection__area">
       <div class="selection__area__top">
         <div class="device__selector">
-          <select name="" id="device">
-            <option value="iphone-12-pro-max">iPhone 12 Pro Max</option>
-            <option value="iphone-12-pro">iPhone 12 Pro</option>
-            <option value="iphone-12">iPhone 12</option>
-          </select>
+          <rh-select
+            v-if="!listLoading"
+            v-model="selectedDevice"
+            :options="devices"
+          />
         </div>
 
         <div class="outward">
@@ -88,31 +88,88 @@
 </template>
 
 <script>
+import {
+  ref
+} from '@vue/composition-api'
+import useRequest from './useRequest'
+import RhSelect from './RhSelect'
+
 export default {
   components: {
+    RhSelect
   },
-  props: {
-  },
-  data () {
-    return {
-      cartItems: [],
-      product: {}
-      // device: bind select
-    }
-  },
-  computed: {
+  setup () {
+    const cartItems = ref([])
+    const products = ref([])
+    const devices = ref([])
+    const selectedDevice = ref('')
+    const listLoading = ref(true)
 
-  },
-  methods: {
-    fetchProductData () {
+    const getAllProductModels = (items) => {
+      const tempModels = items.value.reduce((acc, product) => {
+        const { title } = product
+        const splitStartIndex = title.indexOf('犀牛盾')
+        const splitTitle = title
+          .substring(0, splitStartIndex)
+          .trim()
+          .split(' ')
+          .filter(ele => ele !== '-')
+
+        const model = {
+          name: splitTitle.join(' '),
+          key: splitTitle.join('-').toLowerCase()
+        }
+
+        acc = acc.concat([model])
+        return acc
+      }, [])
+
+      const allKeys = [...new Set(tempModels.map(model => model.key))]
+      const models = allKeys.map(key => tempModels.find(model => model.key === key))
+
+      const sortedModels = models.sort((a, b) => {
+        const modelPublish = ['12', 'SE', '11', 'XR', 'XS', 'X', '8', '7']
+        const [aVer, bVer] = [a.name.split(' ')[1], b.name.split(' ')[1]]
+        const [aIndex, bIndex] = [modelPublish.indexOf(aVer), modelPublish.indexOf(bVer)]
+        if (aIndex < bIndex) return -1
+        if (aIndex > bIndex) return 1
+        return 0
+      })
+      return sortedModels
+    }
+
+    const fetchProductData = async () => {
       // TODO
       // Call API 抓取產品資料並依產品類型分類。
       // API URL : http://localhost:3000/mod-nx
-    },
+      listLoading.value = true
+      try {
+        const { data } = await useRequest(
+          'http://localhost:3000/mod-nx',
+          { method: 'get' }
+        )
+        products.value = data.value.data
+        devices.value = getAllProductModels(products)
+        selectedDevice.value = 'iphone-12'
+      } finally {
+        listLoading.value = false
+      }
+    }
 
-    addToCart () {
+    const addToCart = () => {
       // TODO
       // 把選取的產品加到 cartItems 裡面並 console 出來
+    }
+
+    fetchProductData()
+
+    return {
+      cartItems,
+      listLoading,
+      products,
+      devices,
+      selectedDevice,
+      addToCart
     }
   }
 }
@@ -132,8 +189,8 @@ export default {
   src: url('https://cdn.shopify.com/s/files/1/0274/8717/files/MarkPro.otf?4269257120200746974')
 
 @font-face
-    font-family: NotoSansCJKtc-Regular
-    src: url(https://cdn.shopify.com/s/files/1/0274/8717/files/NotoSansCJKtc-Regular.otf?4935245772218057441)
+  font-family: NotoSansCJKtc-Regular
+  src: url(https://cdn.shopify.com/s/files/1/0274/8717/files/NotoSansCJKtc-Regular.otf?4935245772218057441)
 
 #purchase
   position: relative
